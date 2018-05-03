@@ -59,7 +59,7 @@ public class LwM2mAgent implements Runnable {
         // Define model provider
         List<ObjectModel> models = ObjectLoader.loadDefault();
         models.addAll(ObjectLoader.loadDdfResources("/models/", modelPaths));
-        DinamicModelProvider dynamDinamicModelProvider = new DinamicModelProvider(models);
+        DynamicModelProvider dynamDinamicModelProvider = new DynamicModelProvider(models);
 
         modelProvider = dynamDinamicModelProvider;
         imageDownloader = new ImageDownloader(imageManagerUrl);

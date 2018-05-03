@@ -12,14 +12,14 @@ import java.util.LinkedList;
  * A LwM2mModelProvider which uses only one model for all registered clients and allow new ObjectModels
  * This is a modification of StaticModelProvider that allows update to the LwM2mModel
  */
-public class DinamicModelProvider implements LwM2mModelProvider {
+public class DynamicModelProvider implements LwM2mModelProvider {
     private LwM2mModel model;
 
-    public DinamicModelProvider(Collection<ObjectModel> objects) {
+    public DynamicModelProvider(Collection<ObjectModel> objects) {
         this(new LwM2mModel(objects));
     }
 
-    public DinamicModelProvider(LwM2mModel model) {
+    public DynamicModelProvider(LwM2mModel model) {
         this.model = model;
     }
 

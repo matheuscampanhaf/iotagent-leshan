@@ -23,7 +23,7 @@ public class DeviceManager {
 
     private String deviceUrl;
     private String templateUrl;
-    private DinamicModelProvider modelProvider;
+    private DynamicModelProvider modelProvider;
     private BiMap<String, String> paths2labels = HashBiMap.create();
     private Map<String, Registration> Devices = new HashMap<String, Registration>();
     private Map<String, String> Lwm2mDevices = new HashMap<String, String>();
@@ -31,7 +31,7 @@ public class DeviceManager {
 
 
 
-    public DeviceManager(String deviceManagerUrl, DinamicModelProvider modelProvider) {
+    public DeviceManager(String deviceManagerUrl, DynamicModelProvider modelProvider) {
         this.deviceUrl = deviceManagerUrl + "/device";
         this.templateUrl = deviceManagerUrl + "/template";
         this.modelProvider = modelProvider;
