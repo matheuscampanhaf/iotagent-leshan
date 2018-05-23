@@ -4,6 +4,8 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.leshan.core.model.ResourceModel;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.util.Arrays;
 
@@ -12,41 +14,67 @@ import java.util.Arrays;
   It should be used as intermediary object when converting between device-manager and Lwm2m models
  */
 public class DeviceAttribute {
-    String label;
-    String type;
-    String valueType;
-    String staticValue;
-    String path;
-    String templateId;
+    private String label;
+    private String type;
+    private String valueType;
+    private Object staticValue;
+    private String path;
+    private ResourceModel.Operations operations;
+    private Boolean isLwM2MAttr;
 
-    public DeviceAttribute(JsonElement json) {
-        // Regular Attributes
-        label = json.getAsJsonObject().get("label").getAsString();
-        type = json.getAsJsonObject().get("type").getAsString();
-        valueType = json.getAsJsonObject().get("value_type").getAsString();
-        if (json.getAsJsonObject().has("template_id")) {
-            templateId = json.getAsJsonObject().get("template_id").getAsString();
-        }
-
-        if (type.equals("dynamic")) {
-            // dynamic does not have a value
+    public DeviceAttribute(JSONObject json) {
+    	this.label = json.getString("label");
+    	this.isLwM2MAttr = false;
+    	this.valueType = json.getString("value_type");
+    	
+    	this.type = json.getString("type");
+        if (type.equals("static")) {
+        	this.staticValue = json.opt("static_value");
+        	this.operations = ResourceModel.Operations.NONE;
+        } else if (type.equals("dynamic")) {
+        	this.operations = ResourceModel.Operations.R;
         } else if (type.equals("actuator")) {
-            // Actuator does not have a value
+        	this.operations = ResourceModel.Operations.RW;
         } else {
-            staticValue = json.getAsJsonObject().get("static_value").getAsString();
+        	this.operations = ResourceModel.Operations.NONE;
         }
-
-        // Metadata
-        path = getLwm2mPath(json);
+    	
+    	JSONArray meta = json.optJSONArray("metadata");
+    	if (meta == null) {
+    		return;
+    	}
+    	for (int i = 0; i < meta.length(); ++i) {
+    		JSONObject metaAttr = meta.getJSONObject(i);
+    		String metaLabel = metaAttr.getString("label");
+    		if (metaLabel.equals("path")) {
+    			this.path = metaAttr.getString("static_value");
+    			this.isLwM2MAttr = true;
+    		} else if (metaLabel.equals("operations")) {
+    			if (metaAttr.getString("static_value").equals("e")) {
+    				this.operations = ResourceModel.Operations.E;
+    			}
+    		}
+    	}
     }
 
     public boolean isLwm2mAttr() {
-        return (!path.isEmpty());
+        return this.isLwM2MAttr;
     }
-
-
-    public Integer[] getLwm2mPath() {
-        return getIdsfromPath(path);
+    
+    public String getLwm2mPath() {
+        return this.path;
+    }
+    
+    public String getLabel() {
+        return this.label;
+    }
+    
+    public Object getStaticValue() {
+    	return this.staticValue;
+    }
+    
+    public String getValueType() {
+    	return this.valueType;
     }
 
     public static Integer[] getIdsfromPath(String path) {
@@ -58,68 +86,36 @@ public class DeviceAttribute {
         return result;
     }
 
-
-    public ResourceModel getLwm2mResourceModel() {
-        Integer[] ids = getLwm2mPath();
-        if (ids == null) {
-            return null;
-        }
-        return getLwm2mResourceModel(ids[2]);
+    public boolean isReadable() {
+        return this.operations == ResourceModel.Operations.RW || this.operations == ResourceModel.Operations.R;
     }
 
-    public ResourceModel getLwm2mResourceModel(int num) {
-        ResourceModel model = new ResourceModel(num, label, getOpsFor(type), false, false,
-                getTypeFor(valueType), "", "", "");
-        return model;
+    public boolean isWritable() {
+    	return this.operations == ResourceModel.Operations.RW || this.operations == ResourceModel.Operations.W;
     }
 
-    public static String getLwm2mPath(JsonElement json) {
-        if (!json.getAsJsonObject().has("metadata")) {
-            return "";
-        }
-        JsonArray obj = json.getAsJsonObject().get("metadata").getAsJsonArray();
-        for (int i = 0; i < obj.size(); i++) {
-            DeviceAttribute attr = new DeviceAttribute(obj.get(i));
-            if (attr.type.equals("lwm2m")) {
-                return attr.staticValue;
-            }
-        }
-        return "";
+    public boolean isExecutable() {
+    	return this.operations == ResourceModel.Operations.E;
     }
-
-    private ResourceModel.Type getTypeFor(String valueType) {
-        switch (valueType) {
-            case "bool":
-            case "boolean":
-                return ResourceModel.Type.BOOLEAN;
-            case "string":
-                return ResourceModel.Type.STRING;
-            case "float":
-                return ResourceModel.Type.FLOAT;
-            case "integer":
-                return ResourceModel.Type.INTEGER;
-            case "geo":
-                return ResourceModel.Type.STRING;
-            default:
-                throw new IllegalArgumentException("Invalid value_type " + valueType);
-        }
+    
+    public String toString() {
+    	StringBuffer objStr = new StringBuffer("");
+    	
+    	objStr.append("Label: " + this.label);
+    	objStr.append("\n type: " + this.type);    	
+    	if (this.valueType != null) {
+    		objStr.append("\n valueType: " + this.valueType);
+    	}
+    	if (this.staticValue != null) {
+    		objStr.append("\n staticValue: " + this.staticValue);
+    	}
+    	if (this.isLwM2MAttr) {
+    		objStr.append("\n path: " + this.path);
+    		objStr.append("\n operations: " + this.operations);
+    	}
+    	
+    	return objStr.toString();
     }
-
-    private ResourceModel.Operations getOpsFor(String type) {
-        switch (type) {
-            case "actuator":
-                return ResourceModel.Operations.RW;
-            case "dynamic":
-                return ResourceModel.Operations.R;
-            case "static":
-                return ResourceModel.Operations.R;
-            case "meta":
-                return ResourceModel.Operations.NONE;
-            default:
-                throw new IllegalArgumentException("Invalid type " + type);
-        }
-    }
-
 
 }
 

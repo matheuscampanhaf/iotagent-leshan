@@ -1,84 +1,75 @@
 package org.cpqd.iotagent;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-
 import java.util.LinkedList;
-import java.util.Map;
-import java.util.Set;
+import java.util.Hashtable;
+
+import org.apache.log4j.Logger;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 public class Device {
-
+	Logger logger = Logger.getLogger(Device.class);
     String label;
     String deviceId;
-    public LinkedList<DeviceAttribute> attributes;
+    String endpoint;
+    public LinkedList<DeviceAttribute> lwm2mReadableAttributes;
+    public Hashtable<String, DeviceAttribute> mapLwm2mAttributesByLabel;
+    public Hashtable<String, DeviceAttribute> mapLwm2mAttributesByPath;
 
-    public static LinkedList<DeviceAttribute> getAttributeListFromTemplate(JsonElement template) {
-        LinkedList<DeviceAttribute> attrList = new LinkedList<>();
-        System.out.println(template);
-
-        for (JsonElement attr : template.getAsJsonArray()) {
-            System.out.println(attr);
-            attrList.add(new DeviceAttribute(attr));
-        }
-        return attrList;
+    public Device(JSONObject device) throws Exception {
+    	this.deviceId = device.getString("id");
+    	this.label = device.getString("label");
+    	
+        this.lwm2mReadableAttributes = new LinkedList<DeviceAttribute>();
+        this.mapLwm2mAttributesByLabel = new Hashtable<String, DeviceAttribute>();
+        this.mapLwm2mAttributesByPath = new Hashtable<String, DeviceAttribute>();
+    	
+        JSONObject templates = device.getJSONObject("attrs");
+        JSONArray templatesIds = device.getJSONObject("attrs").names();
+    	for (int i = 0; i < templatesIds.length(); ++i) {
+    		JSONArray templateAttributes = templates.getJSONArray(templatesIds.getString(i));
+    		for (int j = 0; j < templateAttributes.length(); ++j) {
+    			DeviceAttribute devAttr = new DeviceAttribute(templateAttributes.getJSONObject(j));
+	    		if (devAttr.getLabel().equals("client_endpoint")) {
+	    			this.endpoint = (String)devAttr.getStaticValue();
+	    		}
+	    		if (!devAttr.isLwm2mAttr()) {
+//	    			logger.debug("Skipping " + devAttr.getLabel() + " is not a lwm2m attr");
+	    			// skip this attribute
+	    			continue;
+	    		}
+	            if (devAttr.isReadable()) {
+	            	this.lwm2mReadableAttributes.add(devAttr);
+	            }
+//	            logger.debug("adding " + devAttr.getLabel());
+	            this.mapLwm2mAttributesByLabel.put(devAttr.getLabel(), devAttr);
+	            this.mapLwm2mAttributesByPath.put(devAttr.getLwm2mPath(), devAttr);
+	         }
+    	}
+    	
+    	if (this.endpoint == null) {
+    		throw new Exception();
+    	}
+    }
+    
+    public DeviceAttribute getAttributeByLabel(String label) {
+        return this.mapLwm2mAttributesByLabel.get(label);
+    }
+    
+    public DeviceAttribute getAttributeByPath(String path) {
+        return this.mapLwm2mAttributesByPath.get(path);
+    }
+    
+    public String getDeviceId() {
+        return this.deviceId;
+    }
+    
+    public String getClientEndpoint() {
+        return this.endpoint;
     }
 
-    public static LinkedList<DeviceAttribute> getAttributeList(JsonElement attrs) {
-        LinkedList<DeviceAttribute> attrList = new LinkedList<>();
-        // Get all ResourceModels for each attribute
-        JsonObject data = attrs.getAsJsonObject().get("attrs").getAsJsonObject();
-        Set<Map.Entry<String, JsonElement>> entrySet = data.entrySet();
-        for (Map.Entry<String, JsonElement> entry : entrySet) {
-            attrList.addAll(getAttributeListFromTemplate(entry.getValue()));
-        }
-        return attrList;
+    public LinkedList<DeviceAttribute> getReadableAttributes() {
+    	return this.lwm2mReadableAttributes;
     }
-
-
-    public Device(JsonElement device) {
-        label = device.getAsJsonObject().get("label").getAsString();
-        deviceId = device.getAsJsonObject().get("id").getAsString();
-        attributes = new LinkedList<>();
-        // Get all ResourceModels for each attribute
-        JsonObject data = device.getAsJsonObject().get("attrs").getAsJsonObject();
-        Set<Map.Entry<String, JsonElement>> entrySet = data.entrySet();
-        for (Map.Entry<String, JsonElement> entry : entrySet) {
-            for (JsonElement attr : entry.getValue().getAsJsonArray()) {
-                System.out.println(attr);
-                attributes.add(new DeviceAttribute(attr));
-            }
-        }
-    }
-
-    public String getStaticValue(String label) {
-        return getStaticValue(attributes, label);
-    }
-
-
-    public static String getStaticValue(LinkedList<DeviceAttribute> attrs, String label) {
-        for (DeviceAttribute attr : attrs) {
-            if (attr.label.equals(label)) {
-                return attr.staticValue;
-            }
-        }
-        return "";
-    }
-
-
-    public String getTemplateId(String label) {
-        return getTemplateId(attributes, label);
-    }
-
-
-    public static String getTemplateId(LinkedList<DeviceAttribute> attrs, String label) {
-        for (DeviceAttribute attr : attrs) {
-            if (attr.label.equals(label)) {
-                return attr.templateId;
-            }
-        }
-        return "";
-    }
-
 
 }

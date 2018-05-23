@@ -120,7 +120,7 @@
         <dependency>
             <groupId>com.github.dojot</groupId>
             <artifactId>iotagent-java</artifactId>
-            <version>72fbc2e</version>
+            <version>master-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.californium</groupId>
