@@ -14,10 +14,10 @@ parser.add_option("-o", "--output", dest="output_file",
 
 
 def gettype(op):
-    if op == "RW" or op == "E":
+    if op == "RW" or op == "E" or op == "W":
         return "actuator"
     if op == "R":
-        return "static"
+        return "dynamic"
 
 def get_attribute(item, resource_id, resource_name, instance_num):
     attr_id = item.attrib['ID']
@@ -30,27 +30,29 @@ def get_attribute(item, resource_id, resource_name, instance_num):
         "type" : gettype(op),
         "value_type": attr_type.lower(),
         "metadata": [
-            {"label": "oi", "static_value": "/{}/{}/{}".format(resource_id,instance_num, attr_id), "type": "lwm2m", "value_type": "string"}
+            {"label": "path", "static_value": "/{}/{}/{}".format(resource_id,instance_num, attr_id), "type": "lwm2m", "value_type": "string"}
         ]
     }
+    
+    if op == "E":
+    	attr['metadata'].append({"label": "operations", "static_value": "e", "type": "lwm2m", "value_type": "string" })
 
-    if units is not None:
-        attr['metadata'].append({"label": "unit", "static_value": units, "type": "meta", "value_type": "string" })
+#	Actually units is unused, so let's keep it out the model
+#    if units is not None:
+#        attr['metadata'].append({"label": "unit", "static_value": units, "type": "meta", "value_type": "string" })
 
     if attr["type"] == "static":
         attr["static_value"] = ""
 
     return attr
 
-def gettemplate(root, n_instances):
+def get_template(root, n_instances):
     root_object = root.findall("Object")[0]
     object_id = root_object.findall("ObjectID")[0].text
     resources = root_object.findall("Resources")[0]
     name = root_object.findall("Name")[0].text
     items = resources.findall("Item")
     attrs = [get_attribute(item, object_id, name, instance_num) for item in items for instance_num in range(n_instances)]
-
-
 
     template = {
         "label": name,
@@ -66,7 +68,7 @@ tree = ET.parse(options.input_file)
 root = tree.getroot()
 
 n = int(options.n_instances)
-template = gettemplate(root, n)
+template = get_template(root, n)
 pprint(template)
 
 with open(options.output_file, "w+") as f:

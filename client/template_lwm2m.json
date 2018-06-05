@@ -1,0 +1,11 @@
+{
+  "label": "Template_lwm2m",
+  "attrs": [
+    {
+      "label": "client_endpoint",
+      "type": "static",
+      "value_type": "string",
+      "static_value": "client_endpoint_default"
+    }
+  ]
+}

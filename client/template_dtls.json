@@ -1,0 +1,32 @@
+{
+  "label": "Template_dtls",
+  "attrs": [
+    {
+      "label": "pre_shared_key",
+      "type": "static",
+      "value_type": "psk",
+      "metadata": [
+        {
+          "type": "lwm2m",
+          "value_type": "string",
+          "static_value": "/0/0/5",
+          "label": "path"
+        }
+      ]
+    },
+    {
+      "label": "pre_shared_key_identity",
+      "type": "static",
+      "value_type": "string",
+      "static_value": "key_id",
+      "metadata": [
+        {
+          "type": "lwm2m",
+          "value_type": "string",
+          "static_value": "/0/0/3",
+          "label": "path"
+        }
+      ]      
+    }
+  ]
+}
