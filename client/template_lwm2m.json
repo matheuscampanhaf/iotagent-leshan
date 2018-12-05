@@ -6,6 +6,17 @@
       "type": "static",
       "value_type": "string",
       "static_value": "client_endpoint_default"
+    },
+    {
+      "label": "fw_version",
+      "type": "static",
+      "value_type": "string",
+      "static_value": "0.0.1"
+    },
+    {
+      "label": "desirable_fw_version",
+      "type": "actuator",
+      "value_type": "string"
     }
   ]
 }

@@ -97,25 +97,6 @@
       "type": "actuator",
       "label": "Temperature-ResetMinandMaxMeasuredValues-0",
       "value_type": "string"
-    },
-    {
-      "metadata": [
-        {
-          "type": "lwm2m",
-          "label": "path",
-          "static_value": "/3311/0/5850",
-          "value_type": "string"
-        },
-        {
-          "type": "lwm2m",
-          "label": "operations",
-          "static_value": "e",
-          "value_type": "string"
-        }
-      ],
-      "type": "actuator",
-      "label": "ligth_contro_On_Off",
-      "value_type": "string"
     }
   ]
 }

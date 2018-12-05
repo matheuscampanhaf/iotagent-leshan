@@ -13,12 +13,14 @@ iotc = IotClient()
 
 template_lwm2m = iotc.create_template(load_template("template_lwm2m.json"))
 template_temp_sensor = iotc.create_template(load_template("models/3303.json"))
+template_fw_update = iotc.create_template(load_template("models/5.json"))
 
 device_endpoint = "unsecure-client-endpoint"
 device_payload_base = {
     "templates": [
                    template_lwm2m['id'],
-                   template_temp_sensor['id']
+                   template_temp_sensor['id'],
+				   template_fw_update['id']
                  ],
     "attrs": [
     	{

@@ -1,0 +1,63 @@
+{
+  "label": "Firmware Update",
+  "attrs": [
+    {
+      "metadata": [
+        {
+          "type": "lwm2m",
+          "label": "path",
+          "static_value": "/5/0/1",
+          "value_type": "string"
+        }
+      ],
+      "type": "actuator",
+      "label": "FWUpdate-PackageURI",
+      "value_type": "string"
+    },
+    {
+      "metadata": [
+        {
+          "type": "lwm2m",
+          "label": "path",
+          "static_value": "/5/0/3",
+          "value_type": "string"
+        }
+      ],
+      "type": "dynamic",
+      "label": "FWUpdate-State",
+      "value_type": "integer"
+    },
+    {
+      "metadata": [
+        {
+          "type": "lwm2m",
+          "label": "path",
+          "static_value": "/5/0/5",
+          "value_type": "string"
+        }
+      ],
+      "type": "dynamic",
+      "label": "FWUpdate-UpdateResult",
+      "value_type": "integer"
+    },
+    {
+      "metadata": [
+        {
+          "type": "lwm2m",
+          "label": "path",
+          "static_value": "/5/0/2",
+          "value_type": "string"
+        },
+        {
+          "type": "lwm2m",
+          "label": "operations",
+          "static_value": "e",
+          "value_type": "string"
+        }
+      ],
+      "type": "actuator",
+      "label": "FWUpdate-Update",
+      "value_type": "string"
+    }
+  ]
+}
