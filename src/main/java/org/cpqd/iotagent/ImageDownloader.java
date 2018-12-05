@@ -13,6 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.NoSuchElementException;
+import java.lang.System;
 
 /**
  * This class abstracts everything related to the image-manager, it should have no knowledge of anything LWM2M related
@@ -21,10 +22,18 @@ import java.util.NoSuchElementException;
 public class ImageDownloader {
     private Logger mLogger = Logger.getLogger(ImageDownloader.class);
 
-    private String imageUrl;
+    private String imageURI;
+    private String fileServerAddress;
 
-    public ImageDownloader(String imageManagerUrl) {
-        this.imageUrl = imageManagerUrl + "/image";
+    public ImageDownloader(String imageManagerURI) {
+        this.imageURI = imageManagerURI + "/image";
+
+        if(System.getenv("FILE_SERVER_ADDRESS") != null ){
+            this.fileServerAddress = System.getenv("FILE_SERVER_ADDRESS");
+        } else {
+            this.fileServerAddress = "10.202.21.44";
+        }
+
         try {
             Path path = FileSystems.getDefault().getPath("./data/");
             if (!Files.exists(path)) {
@@ -34,12 +43,12 @@ public class ImageDownloader {
         }
     }
 
-    public String ImageUrl(String service, String imageLabel, String version) {
+    public String ImageURI(String service, String imageLabel, String version) {
         // TODO(jsiloto): Sanity check and return empty
         String imageID = FetchImage(service, imageLabel, version);
-        String fileserverUrl = "coap://[2001:db8::2]:5693/data/";
-        String fileUrl = fileserverUrl + imageID + ".hex";
-        return fileUrl;
+        String fileServerURI = "coap://" + this.fileServerAddress + ":5693/data/";
+        String fileURI = fileServerURI + imageID + ".hex";
+        return fileURI;
     }
 
     public String FetchImage(String service, String imageLabel, String version) {
@@ -52,7 +61,7 @@ public class ImageDownloader {
     private String GetImageId(String imageLabel, String version, String token) {
         try {
 
-            HttpResponse<JsonNode> response = Unirest.get(imageUrl)
+            HttpResponse<JsonNode> response = Unirest.get(imageURI)
                     .header("Authorization", "Bearer " + token).asJson();
 
             JsonNode imageList = response.getBody();
@@ -77,7 +86,7 @@ public class ImageDownloader {
 
     private void DownloadImage(String imageId, String token) {
         try {
-            HttpResponse<InputStream> fwInStream = Unirest.get(imageUrl + "/" + imageId + "/binary")
+            HttpResponse<InputStream> fwInStream = Unirest.get(imageURI + "/" + imageId + "/binary")
                     .header("Authorization", "Bearer " + token)
                     .asBinary();
 
