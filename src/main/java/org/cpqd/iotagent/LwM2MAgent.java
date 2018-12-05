@@ -45,16 +45,17 @@ public class LwM2MAgent implements Runnable {
     private LeshanServer server;
     private Manager eventHandler;
     private InMemorySecurityStore securityStore;
-
+	private String fwUpdateLabel;
 
     public LwM2MAgent() {
         this.eventHandler = new Manager();
         this.deviceMapper = new DeviceMapper();
         
         this.securityStore = new InMemorySecurityStore();
-        
+        this.fwUpdateLabel = "desirable_fw_version";
+
         Config dojotConfig = Config.getInstance();
-//        imageDownloader = new ImageDownloader("http://" + dojotConfig.getImageManagerAddress());
+		imageDownloader = new ImageDownloader("http://" + dojotConfig.getImageManagerAddress());
 
         // register the callbacks to treat the events
         this.eventHandler.addCallback("create", this::on_create);
@@ -104,7 +105,34 @@ public class LwM2MAgent implements Runnable {
     	logger.debug("Bootstrap iotagent leshan: finished");
     	return true;
     }
+	/**
+	 * This method is part of Firmware Update. The first thing to do in a firmware update in LwM2m protocol
+	 * is send the Package URI to the device. The next step, is wait until the device send that his state
+	 * has changed to downloaded (state 2), and, then, actuate on the attribute "FWUpdate-Update", that
+	 * will trigger the Firmware Update on the device. 
+	 * @param registration, newFwVersion, tenant 
+	 * @return
+	 */
+	private Integer sendsURItoDevice(Registration registration, String newFwVersion, String tenant){
+		logger.debug("Will try to send URI to device");
 
+		//Verification if the fw version is really changing.
+		String currentFwVersion = requestHandler.ReadResource(registration, "/3/0/3");
+		logger.debug("Current FW version: " + currentFwVersion);
+		logger.debug("Desirable FW version: " + newFwVersion);
+		//Gets URL to give it to device if the version is actual changing
+		if(!currentFwVersion.equals(newFwVersion)){
+			logger.debug("Versions have actual changed");
+			String fileURI = imageDownloader.ImageURI(tenant, "Template_lwm2m", newFwVersion);
+			logger.debug("Got the file URI: " + fileURI);
+			logger.debug("Will write URI in resource package URI");
+			requestHandler.WriteResource(registration, "/5/0/1", fileURI);
+		}
+		else {
+			logger.debug("Device already up-to-date");
+		}
+		return 0;
+	}
     /**
      * @brief This method is a callback and it is called every time a new device is created. It creates a device 
      * representation, register the security key, if any, and can trigger the observation procedure if applicable
@@ -251,26 +279,29 @@ public class LwM2MAgent implements Runnable {
 
         for (int i = 0; i < targetAttrs.length(); ++i) {
         	String targetAttr = targetAttrs.getString(i);
-        	devAttr = device.getAttributeByLabel(targetAttr);
-        	if (devAttr != null) {
-        		logger.debug("actuating on attribute: " + devAttr.getLabel());
-        		String path = devAttr.getLwm2mPath();
-        		if (devAttr.isExecutable()) {
-        			logger.debug("excuting");
-        			requestHandler.ExecuteResource(controlStruture.registration, path, attrs.getString(targetAttr));
-        		} else if (devAttr.isWritable()) {
-        			logger.debug("writing");
-        			// TODO: maybe firmware update goes here
-        			requestHandler.WriteResource(controlStruture.registration, path, attrs.get(targetAttr));
+			if(targetAttr.equals(fwUpdateLabel)){
+				sendsURItoDevice(controlStruture.registration, attrs.getString(targetAttr), tenant);
+			}
+        	else {
+				devAttr = device.getAttributeByLabel(targetAttr);
+        		if (devAttr != null) {
+					logger.debug("actuating on attribute: " + devAttr.getLabel());
+        			String path = devAttr.getLwm2mPath();
+        			if (devAttr.isExecutable()) {
+        				logger.debug("excuting");
+        				requestHandler.ExecuteResource(controlStruture.registration, path, attrs.getString(targetAttr));
+        			} else if (devAttr.isWritable()) {
+        				logger.debug("writing");
+        				requestHandler.WriteResource(controlStruture.registration, path, attrs.get(targetAttr));
+        			}
+        		} else {
+        			logger.warn("skipping attribute: " + targetAttr + ". Not found.");
         		}
-        	} else {
-        		logger.warn("skipping attribute: " + targetAttr + ". Not found.");
-        	}
+			}
 		}
 
         return 0;
     }
-
 
     private final RegistrationListener registrationListener = new RegistrationListener() {
     	
