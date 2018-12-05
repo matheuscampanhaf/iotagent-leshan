@@ -8,11 +8,15 @@ Checking if registrations are active is not this class responsibility
 In case of failure any request should fail silently
  */
 
+import org.eclipse.leshan.core.request.ReadRequest;
 import org.eclipse.leshan.core.request.ExecuteRequest;
 import org.eclipse.leshan.core.request.ObserveRequest;
 import org.apache.log4j.Logger;
+import org.eclipse.leshan.core.node.LwM2mSingleResource;
+import org.eclipse.leshan.core.node.LwM2mNode;
 import org.eclipse.leshan.core.request.WriteRequest;
 import org.eclipse.leshan.core.response.ObserveResponse;
+import org.eclipse.leshan.core.response.ReadResponse;
 import org.eclipse.leshan.core.response.WriteResponse;
 import org.eclipse.leshan.server.LwM2mServer;
 import org.eclipse.leshan.server.registration.Registration;
@@ -44,6 +48,32 @@ public class LwM2mHandler {
     public void CancelAllObservations(Registration registration) {
         server.getObservationService().cancelObservations(registration);
     }
+
+    public String ReadResource(Registration registration, String path) {
+        mLogger.debug("path: " + path);
+        String value = "";
+        try {
+            Integer pathArray[] = DeviceAttribute.getIdsfromPath(path);
+            ReadResponse response = server.send(registration, new ReadRequest(pathArray[0], pathArray[1], pathArray[2]), readTimout);
+            LwM2mNode lwm2mNode = response.getContent();
+            if (lwm2mNode == null){
+                mLogger.warn("Response is null. Exiting");
+                return "";
+            }
+            if (!(lwm2mNode instanceof LwM2mSingleResource)) {
+        		mLogger.warn("Unsuported content object.");
+        		return "";
+        	}
+        	LwM2mSingleResource resource = (LwM2mSingleResource)lwm2mNode;
+            
+            value = (String)resource.getValue();
+        } catch (Exception e) {
+            // Todo(jsiloto): Log errors here
+            e.printStackTrace();
+            mLogger.error(e);
+        }
+        return value;
+}
     
     public void ExecuteResource(Registration registration, String path, String parameters) {
     	try {
