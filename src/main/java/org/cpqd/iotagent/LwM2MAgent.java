@@ -113,7 +113,7 @@ public class LwM2MAgent implements Runnable {
 	 * @param registration, newFwVersion, tenant 
 	 * @return
 	 */
-	private Integer sendsURItoDevice(Registration registration, String newFwVersion, String tenant){
+	private Integer sendsURItoDevice(Registration registration, String newFwVersion, String tenant, String deviceId){
 		logger.debug("Will try to send URI to device");
 
 		//Verification if the fw version is really changing.
@@ -123,7 +123,7 @@ public class LwM2MAgent implements Runnable {
 		//Gets URL to give it to device if the version is actual changing
 		if(!currentFwVersion.equals(newFwVersion)){
 			logger.debug("Versions have actual changed");
-			String fileURI = imageDownloader.ImageURI(tenant, "Template_lwm2m", newFwVersion);
+			String fileURI = imageDownloader.ImageURI(tenant, deviceId, "Template_lwm2m", newFwVersion);
 			logger.debug("Got the file URI: " + fileURI);
 			logger.debug("Will write URI in resource package URI");
 			requestHandler.WriteResource(registration, "/5000/0/1", fileURI);
@@ -280,7 +280,7 @@ public class LwM2MAgent implements Runnable {
         for (int i = 0; i < targetAttrs.length(); ++i) {
         	String targetAttr = targetAttrs.getString(i);
 			if(targetAttr.equals(fwUpdateLabel)){
-				sendsURItoDevice(controlStruture.registration, attrs.getString(targetAttr), tenant);
+				sendsURItoDevice(controlStruture.registration, attrs.getString(targetAttr), tenant, deviceId);
 			}
         	else {
 				devAttr = device.getAttributeByLabel(targetAttr);

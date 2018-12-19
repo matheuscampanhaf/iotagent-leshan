@@ -1,5 +1,8 @@
 package org.cpqd.iotagent;
 
+import org.cpqd.iotagent.Device;
+import br.com.dojot.utils.Services;
+
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
@@ -43,10 +46,29 @@ public class ImageDownloader {
         }
     }
 
-    public String ImageURI(String service, String imageLabel, String version) {
+    public String ImageURI(String service, String deviceId, String imageLabel, String version) {
         // TODO(jsiloto): Sanity check and return empty
+        String protocol = "coap";
+        String port = "5693";
+        Device device;
+        Services iotAgent = Services.getInstance();
+        JSONObject deviceJson = iotAgent.getDevice(deviceId, service);
+        try {
+            device = new Device(deviceJson);
+        } catch (Exception e) {
+            mLogger.warn("Invalid json to create device object");
+            return "";
+        }
+        
+
+        if(device.isSecure()){
+            mLogger.warn("Device is using DTLS");
+            protocol = "coaps";
+            port = "5694";
+        } 
+
         String imageID = FetchImage(service, imageLabel, version);
-        String fileServerURI = "coap://" + this.fileServerAddress + ":5693/data/";
+        String fileServerURI = protocol + "://" + this.fileServerAddress + ":" + port + "/data/";
         String fileURI = fileServerURI + imageID + ".hex";
         return fileURI;
     }

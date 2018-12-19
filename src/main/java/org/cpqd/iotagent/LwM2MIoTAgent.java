@@ -13,7 +13,7 @@ public class LwM2MIoTAgent {
         logger.info("Starting LwM2M IoTAgent...");
 
         InMemoryPskStore securityStore = new InMemoryPskStore();
-
+        logger.warn("PRINTINT THE SECURITY STORE::::::::::: " + securityStore.getKey());
         // we need to share the securityStore with the agent
         LwM2MAgent agent = new LwM2MAgent();
 

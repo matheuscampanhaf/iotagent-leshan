@@ -48,7 +48,6 @@ public class SimpleFileServer extends CoapServer {
 
 	public SimpleFileServer(File coapConfigFile, PskStore pskStore) {
 		NetworkConfig.createStandardWithFile(coapConfigFile);
-		
 		int coapPort = NetworkConfig.getStandard().getInt(NetworkConfig.Keys.COAP_PORT);
 		int secureCoapPort = NetworkConfig.getStandard().getInt(NetworkConfig.Keys.COAP_SECURE_PORT);
 		

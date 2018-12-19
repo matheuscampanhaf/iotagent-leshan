@@ -51,6 +51,40 @@ public class Device {
     		throw new Exception();
     	}
     }
+
+    public Boolean isSecure(){
+        DeviceAttribute pskAttr = this.getAttributeByPath("/0/0/5");
+        logger.info(pskAttr);
+        if(pskAttr != null){
+            if (!pskAttr.getValueType().equals("psk")) {
+				//todo
+				logger.error("device " + this.deviceId + ": invalid psk value type, it must be 'psk'");
+				return false;
+			}
+            String psk = (String) pskAttr.getStaticValue();
+            if(psk == null){
+                logger.error("device " + this.deviceId + ": missing psk value. Have you configured it?");
+		    		return false;
+            }
+            DeviceAttribute pskIdentityAttr = this.getAttributeByPath("/0/0/3");
+            if(pskIdentityAttr == null) {
+                logger.error("device " + this.deviceId + ": psk is present, but psk identity not");
+		    		return false;
+            }
+            if(!pskIdentityAttr.getValueType().equals("string")){
+                logger.error("device " + this.deviceId + ": invalid psk identity value type, it must be 'string'");
+		    		return false;
+            }
+            String pskIdentity = (String) pskIdentityAttr.getStaticValue();
+            if (pskIdentity == null){
+                logger.error("device " + this.deviceId + ": missing psk identity configuration. Have you configured it?");
+		    		return false;
+            }
+            return true;
+        } else {
+            return false;
+        }
+    }
     
     public DeviceAttribute getAttributeByLabel(String label) {
         return this.mapLwm2mAttributesByLabel.get(label);
