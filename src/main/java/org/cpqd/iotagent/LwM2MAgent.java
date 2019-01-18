@@ -27,6 +27,7 @@ import org.eclipse.leshan.server.registration.RegistrationListener;
 import org.eclipse.leshan.server.registration.RegistrationUpdate;
 import org.eclipse.leshan.server.security.NonUniqueSecurityInfoException;
 import org.eclipse.leshan.server.security.SecurityInfo;
+import org.eclipse.californium.scandium.dtls.pskstore.InMemoryPskStore;
 import org.eclipse.leshan.util.Hex;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -46,11 +47,12 @@ public class LwM2MAgent implements Runnable {
     private Manager eventHandler;
     private InMemorySecurityStore securityStore;
 	private String fwUpdateLabel;
+	private InMemoryPskStore fsPskStore;
 
-    public LwM2MAgent() {
+    public LwM2MAgent(InMemoryPskStore pskStore) {
         this.eventHandler = new Manager();
         this.deviceMapper = new DeviceMapper();
-        
+        this.fsPskStore = pskStore;
         this.securityStore = new InMemorySecurityStore();
         this.fwUpdateLabel = "desirable_fw_version";
 
@@ -105,6 +107,11 @@ public class LwM2MAgent implements Runnable {
     	logger.debug("Bootstrap iotagent leshan: finished");
     	return true;
     }
+
+	public void setKeyPskStore(String keyId, String psk){
+		this.fsPskStore.setKey(keyId, psk.getBytes());
+	}
+
 	/**
 	 * This method is part of Firmware Update. The first thing to do in a firmware update in LwM2m protocol
 	 * is send the Package URI to the device. The next step, is wait until the device send that his state
@@ -164,11 +171,6 @@ public class LwM2MAgent implements Runnable {
         // '/0/0/5' is the standard path to pre-shared key value
 		DeviceAttribute pskAttr = device.getAttributeByPath("/0/0/5");
 		if (pskAttr != null) {
-			if (!pskAttr.getValueType().equals("psk")) {
-				//todo
-				logger.error("device " + deviceId + ": invalid psk value type, it must be 'psk'");
-				return 0;
-			}
 			String psk = (String) pskAttr.getStaticValue();
 			if (psk == null) {
 				logger.error("device " + deviceId + ": missing psk value. Have you configured it?");
@@ -195,6 +197,7 @@ public class LwM2MAgent implements Runnable {
 			try {
 				this.securityStore.remove(clientEndpoint);
 				this.securityStore.add(securityInfo);
+				setKeyPskStore(pskIdentity, psk);
 				logger.debug("Adding a psk to device: " + deviceId);
 			} catch (NonUniqueSecurityInfoException e) {
 				e.printStackTrace();

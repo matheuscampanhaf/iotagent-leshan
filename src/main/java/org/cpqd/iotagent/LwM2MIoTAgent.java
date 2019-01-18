@@ -13,12 +13,8 @@ public class LwM2MIoTAgent {
         logger.info("Starting LwM2M IoTAgent...");
 
         InMemoryPskStore securityStore = new InMemoryPskStore();
-        String customPsk = "banana";
-        securityStore.setKey("key1", customPsk.getBytes());
-        customPsk = "maca";
-        securityStore.setKey("key2", customPsk.getBytes());
-        // we need to share the securityStore with the agent
-        LwM2MAgent agent = new LwM2MAgent();
+        // we need to share the securityStore with the agent <- done ????
+        LwM2MAgent agent = new LwM2MAgent(securityStore);
 
         boolean bootstraped = agent.bootstrap();
         if (!bootstraped) {
