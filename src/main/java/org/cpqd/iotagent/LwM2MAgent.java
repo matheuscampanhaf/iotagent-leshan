@@ -27,11 +27,11 @@ import org.eclipse.leshan.server.registration.RegistrationListener;
 import org.eclipse.leshan.server.registration.RegistrationUpdate;
 import org.eclipse.leshan.server.security.NonUniqueSecurityInfoException;
 import org.eclipse.leshan.server.security.SecurityInfo;
-import org.eclipse.californium.scandium.dtls.pskstore.InMemoryPskStore;
 import org.eclipse.leshan.util.Hex;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.cpqd.iotagent.FileServerPskStore;
 
 import br.com.dojot.config.Config;
 import br.com.dojot.kafka.Manager;
@@ -47,9 +47,9 @@ public class LwM2MAgent implements Runnable {
     private Manager eventHandler;
     private InMemorySecurityStore securityStore;
 	private String fwUpdateLabel;
-	private InMemoryPskStore fsPskStore;
+	private FileServerPskStore fsPskStore;
 
-    public LwM2MAgent(InMemoryPskStore pskStore) {
+    public LwM2MAgent(FileServerPskStore pskStore) {
         this.eventHandler = new Manager();
         this.deviceMapper = new DeviceMapper();
         this.fsPskStore = pskStore;
@@ -197,7 +197,8 @@ public class LwM2MAgent implements Runnable {
 			try {
 				this.securityStore.remove(clientEndpoint);
 				this.securityStore.add(securityInfo);
-				setKeyPskStore(pskIdentity, psk);
+				logger.info("Inserting pskId ioto psk store");
+				this.fsPskStore.setKey(pskIdentity, psk.getBytes());
 				logger.debug("Adding a psk to device: " + deviceId);
 			} catch (NonUniqueSecurityInfoException e) {
 				e.printStackTrace();
@@ -244,6 +245,13 @@ public class LwM2MAgent implements Runnable {
 			return 0;
 		}
         
+		if (device.isSecure()){
+			DeviceAttribute pskIdentityAttr = device.getAttributeByPath("/0/0/3");
+			String pskIdentity = (String) pskIdentityAttr.getStaticValue();
+			logger.info("removing pskId from psk store");
+			this.fsPskStore.removeKey(pskIdentity);
+		}
+
         String clientEndpoint = device.getClientEndpoint();
         DeviceControlStructure controlStructure = this.deviceMapper.getDeviceControlStructure(clientEndpoint);
         if (controlStructure.isSouthboundAssociate()) {

@@ -4,7 +4,7 @@ import java.io.File;
 
 import org.apache.log4j.Logger;
 import org.cpqd.iotagent.LwM2MAgent;
-import org.eclipse.californium.scandium.dtls.pskstore.InMemoryPskStore;
+import org.cpqd.iotagent.FileServerPskStore;
 
 public class LwM2MIoTAgent {
 
@@ -12,7 +12,7 @@ public class LwM2MIoTAgent {
         Logger logger = Logger.getLogger(LwM2MIoTAgent.class);
         logger.info("Starting LwM2M IoTAgent...");
 
-        InMemoryPskStore securityStore = new InMemoryPskStore();
+        FileServerPskStore securityStore = new FileServerPskStore();
         // we need to share the securityStore with the agent <- done ????
         LwM2MAgent agent = new LwM2MAgent(securityStore);
 
