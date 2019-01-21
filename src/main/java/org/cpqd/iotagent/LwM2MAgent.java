@@ -169,28 +169,35 @@ public class LwM2MAgent implements Runnable {
         // registered with this client endpoint and adds a new entry with the received data
 
         // '/0/0/5' is the standard path to pre-shared key value
-		DeviceAttribute pskAttr = device.getAttributeByPath("/0/0/5");
-		if (pskAttr != null) {
+		// DeviceAttribute pskAttr = device.getAttributeByPath("/0/0/5");
+		// if (pskAttr != null) {
+		// 	String psk = (String) pskAttr.getStaticValue();
+		// 	if (psk == null) {
+		// 		logger.error("device " + deviceId + ": missing psk value. Have you configured it?");
+		// 		return 0;
+		// 	}
+		// 	// '/0/0/3' is the standard path to the pre-shared key identity
+		// 	DeviceAttribute pskIdentityAttr = device.getAttributeByPath("/0/0/3");
+		// 	if (pskIdentityAttr == null) {
+		// 		logger.error("device " + deviceId + ": psk is present, but psk identity not");
+		// 		return 0;
+		// 	}
+		// 	if (!pskIdentityAttr.getValueType().equals("string")) {
+		// 		logger.error("device " + deviceId + ": invalid psk identity value type, it must be 'string'");
+		// 		return 0;
+		// 	}
+		// 	String pskIdentity = (String) pskIdentityAttr.getStaticValue();
+		// 	if (pskIdentity == null) {
+		// 		logger.error("device " + deviceId + ": missing psk identity configuration. Have you configured it?");
+		// 		return 0;
+		// 	}
+		if(device.isSecure()){
+			// '/0/0/5' is the standard path to pre-shared key value
+			DeviceAttribute pskAttr = device.getAttributeByPath("/0/0/5");
 			String psk = (String) pskAttr.getStaticValue();
-			if (psk == null) {
-				logger.error("device " + deviceId + ": missing psk value. Have you configured it?");
-				return 0;
-			}
 			// '/0/0/3' is the standard path to the pre-shared key identity
 			DeviceAttribute pskIdentityAttr = device.getAttributeByPath("/0/0/3");
-			if (pskIdentityAttr == null) {
-				logger.error("device " + deviceId + ": psk is present, but psk identity not");
-				return 0;
-			}
-			if (!pskIdentityAttr.getValueType().equals("string")) {
-				logger.error("device " + deviceId + ": invalid psk identity value type, it must be 'string'");
-				return 0;
-			}
 			String pskIdentity = (String) pskIdentityAttr.getStaticValue();
-			if (pskIdentity == null) {
-				logger.error("device " + deviceId + ": missing psk identity configuration. Have you configured it?");
-				return 0;
-			}
 			SecurityInfo securityInfo = SecurityInfo.newPreSharedKeyInfo(clientEndpoint,
 																		 pskIdentity,
 																		 Hex.decodeHex(psk.toCharArray()));
