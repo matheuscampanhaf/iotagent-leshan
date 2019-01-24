@@ -17,7 +17,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.NoSuchElementException;
 import java.lang.System;
-
+import com.mycompany.app.auth.Auth;
 /**
  * This class abstracts everything related to the image-manager, it should have no knowledge of anything LWM2M related
  */
@@ -74,7 +74,7 @@ public class ImageDownloader {
     }
 
     public String FetchImage(String service, String imageLabel, String version) {
-        String token = TenancyManager.GetJwtToken(service);
+        String token = Auth.getInstance().getToken(service);
         String imageID = GetImageId(imageLabel, version, token);
         DownloadImage(imageID, token);
         return imageID;

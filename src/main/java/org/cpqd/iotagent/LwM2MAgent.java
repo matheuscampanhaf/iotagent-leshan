@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.LinkedList;
 
+import com.mycompany.app.auth.Auth;
 import org.apache.log4j.Logger;
 import org.cpqd.iotagent.Device;
 import org.cpqd.iotagent.DeviceAttribute;
@@ -33,8 +34,9 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.cpqd.iotagent.FileServerPskStore;
 
-import br.com.dojot.config.Config;
-import br.com.dojot.kafka.Manager;
+
+import com.mycompany.app.config.Config;
+import br.com.dojot.IoTAgent.IoTAgent;
 import br.com.dojot.utils.Services;
 
 
@@ -44,13 +46,13 @@ public class LwM2MAgent implements Runnable {
     private DeviceMapper deviceMapper;
     private LwM2mHandler requestHandler;
     private LeshanServer server;
-    private Manager eventHandler;
+    private IoTAgent eventHandler;
     private InMemorySecurityStore securityStore;
 	private String fwUpdateLabel;
 	private FileServerPskStore fsPskStore;
 
     public LwM2MAgent(FileServerPskStore pskStore) {
-        this.eventHandler = new Manager();
+        this.eventHandler = new IoTAgent();
         this.deviceMapper = new DeviceMapper();
         this.fsPskStore = pskStore;
         this.securityStore = new InMemorySecurityStore();
@@ -60,10 +62,10 @@ public class LwM2MAgent implements Runnable {
 		imageDownloader = new ImageDownloader("http://" + dojotConfig.getImageManagerAddress());
 
         // register the callbacks to treat the events
-        this.eventHandler.addCallback("create", this::on_create);
-        this.eventHandler.addCallback("update", this::on_create);
-        this.eventHandler.addCallback("remove", this::on_remove);
-        this.eventHandler.addCallback("configure", this::on_actuate);
+        this.eventHandler.on("iotagent.device", "device.create", this::on_create);
+        this.eventHandler.on("iotagent.device", "device.update", this::on_create);
+        this.eventHandler.on("iotagent.device", "device.remove", this::on_remove);
+        this.eventHandler.on("iotagent.device", "device.configure", this::on_actuate);
     }
 
     /**
@@ -74,7 +76,7 @@ public class LwM2MAgent implements Runnable {
     	logger.debug("Bootstrap iotagent leshan: started");
     	Services iotAgent = Services.getInstance();
     	
-    	List<String> tenants = iotAgent.listTenants();
+    	List<String> tenants = Auth.getInstance().getTenants();
     	if (tenants == null) {
     		logger.error("Fail to retrieve tenants");
     		return false;
@@ -146,51 +148,25 @@ public class LwM2MAgent implements Runnable {
      * @param message
      * @return
      */
-    private Integer on_create(JSONObject message) {
-        logger.debug("on_create: " + message.toString());
+    private Void on_create(String tenant, String message) {
+		JSONObject messageObj = new JSONObject(message);
+        logger.debug("on_create: " + messageObj.toString());
         
         // try to build a device representation
-        String tenant = message.getJSONObject("meta").getString("service");
         Device device;
 		try {
-			device = new Device(message.getJSONObject("data"));
+			device = new Device(messageObj.getJSONObject("data"));
 		} catch (JSONException e) {
 			logger.error("Invalid json");
-			return 0;
+			return null;
 		} catch (Exception e) {
 			// this it not a lwm2m device, just skip it
-			return 0;
+			return null;
 		}
 		
         String deviceId = device.getDeviceId();
         String clientEndpoint = device.getClientEndpoint();
 
-        // let's check if there are any PSK configured into device, if it exists, so removes any others key previously
-        // registered with this client endpoint and adds a new entry with the received data
-
-        // '/0/0/5' is the standard path to pre-shared key value
-		// DeviceAttribute pskAttr = device.getAttributeByPath("/0/0/5");
-		// if (pskAttr != null) {
-		// 	String psk = (String) pskAttr.getStaticValue();
-		// 	if (psk == null) {
-		// 		logger.error("device " + deviceId + ": missing psk value. Have you configured it?");
-		// 		return 0;
-		// 	}
-		// 	// '/0/0/3' is the standard path to the pre-shared key identity
-		// 	DeviceAttribute pskIdentityAttr = device.getAttributeByPath("/0/0/3");
-		// 	if (pskIdentityAttr == null) {
-		// 		logger.error("device " + deviceId + ": psk is present, but psk identity not");
-		// 		return 0;
-		// 	}
-		// 	if (!pskIdentityAttr.getValueType().equals("string")) {
-		// 		logger.error("device " + deviceId + ": invalid psk identity value type, it must be 'string'");
-		// 		return 0;
-		// 	}
-		// 	String pskIdentity = (String) pskIdentityAttr.getStaticValue();
-		// 	if (pskIdentity == null) {
-		// 		logger.error("device " + deviceId + ": missing psk identity configuration. Have you configured it?");
-		// 		return 0;
-		// 	}
 		if(device.isSecure()){
 			// '/0/0/5' is the standard path to pre-shared key value
 			DeviceAttribute pskAttr = device.getAttributeByPath("/0/0/5");
@@ -209,7 +185,7 @@ public class LwM2MAgent implements Runnable {
 				logger.debug("Adding a psk to device: " + deviceId);
 			} catch (NonUniqueSecurityInfoException e) {
 				e.printStackTrace();
-				return 0;
+				return null;
 			}			
 		} else {
 			logger.debug("device: " + deviceId + " is not using DTLS");
@@ -226,7 +202,7 @@ public class LwM2MAgent implements Runnable {
         	logger.debug("skipping observing, southbound is not registered yet");
         }
         
-        return 0;
+        return null;
     }
     
     private void observeResources(LinkedList<DeviceAttribute> readableAttrs, Registration registration) {
@@ -238,18 +214,19 @@ public class LwM2MAgent implements Runnable {
 		}
     }
     
-    private Integer on_remove(JSONObject message) {
-        logger.debug("on_remove: " + message.toString());
+    private Void on_remove(String tenant, String message) {
+    	JSONObject messageObj = new JSONObject(message);
+        logger.debug("on_remove: " + messageObj.toString());
         
         Device device;
 		try {
-			device = new Device(message.getJSONObject("data"));
+			device = new Device(messageObj.getJSONObject("data"));
 		} catch (JSONException e) {
 			logger.error("Invalid json");
-			return 0;
+			return null;
 		} catch (Exception e) {
 			// this it not a lwm2m device, just skip it
-			return 0;
+			return null;
 		}
         
 		if (device.isSecure()){
@@ -265,14 +242,14 @@ public class LwM2MAgent implements Runnable {
         	this.requestHandler.CancelAllObservations(controlStructure.registration);
         }
         this.deviceMapper.removeNorthboundAssociation(clientEndpoint);
-        return 0;
+        return null;
     }
 
-    private Integer on_actuate(JSONObject message) {
-        logger.debug("on_actuate: " + message.toString());
+    private Void on_actuate(String tenant, String message) {
+		JSONObject messageObj = new JSONObject(message);
+		logger.debug("on_actuate: " + messageObj.toString());
 
-        String tenant = message.getJSONObject("meta").getString("service");
-        String deviceId = message.getJSONObject("data").getString("id");
+        String deviceId = messageObj.getJSONObject("data").getString("id");
 
         DeviceAttribute devAttr;
 
@@ -282,7 +259,7 @@ public class LwM2MAgent implements Runnable {
 		try {
 			device = new Device(deviceJson);
 		} catch (Exception e) {
-			return 0;
+			return null;
 		}
 
         DeviceControlStructure controlStruture = this.deviceMapper.getDeviceControlStructure(device.getClientEndpoint());
@@ -290,9 +267,9 @@ public class LwM2MAgent implements Runnable {
         if ((controlStruture == null) || (!controlStruture.isSouthboundAssociate())) {
         	//TODO: maybe send some alarm here?
         	logger.error("Device: " + device.getDeviceId() + " is not registered");
-        	return 0;
+        	return null;
         }
-        JSONObject attrs = message.getJSONObject("data").getJSONObject("attrs");
+        JSONObject attrs = messageObj.getJSONObject("data").getJSONObject("attrs");
         JSONArray targetAttrs = attrs.names();
 
         for (int i = 0; i < targetAttrs.length(); ++i) {
@@ -318,7 +295,7 @@ public class LwM2MAgent implements Runnable {
 			}
 		}
 
-        return 0;
+        return null;
     }
 
     private final RegistrationListener registrationListener = new RegistrationListener() {
