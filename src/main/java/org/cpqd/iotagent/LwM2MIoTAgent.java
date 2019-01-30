@@ -5,7 +5,7 @@ import java.io.File;
 import org.apache.log4j.Logger;
 import org.cpqd.iotagent.LwM2MAgent;
 import org.cpqd.iotagent.FileServerPskStore;
-import com.mycompany.app.messenger.Messenger;
+import com.cpqd.app.messenger.Messenger;
 
 public class LwM2MIoTAgent {
 

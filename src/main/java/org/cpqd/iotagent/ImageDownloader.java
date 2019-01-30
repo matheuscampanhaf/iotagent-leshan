@@ -17,7 +17,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.NoSuchElementException;
 import java.lang.System;
-import com.mycompany.app.auth.Auth;
+import com.cpqd.app.auth.Auth;
 /**
  * This class abstracts everything related to the image-manager, it should have no knowledge of anything LWM2M related
  */

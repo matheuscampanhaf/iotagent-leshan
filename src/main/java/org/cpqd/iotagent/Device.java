@@ -6,7 +6,7 @@ import java.util.Hashtable;
 import org.apache.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import com.mycompany.app.auth.Auth;
+import com.cpqd.app.auth.Auth;
 
 public class Device {
 	Logger logger = Logger.getLogger(Device.class);

@@ -131,12 +131,12 @@
         <dependency>
             <groupId>com.github.matheuscampanhaf</groupId>
             <artifactId>iotagent-java</artifactId>
-            <version>refactoring-SNAPSHOT</version>
+            <version>0.0.15</version>
         </dependency>
         <dependency>
             <groupId>com.github.matheuscampanhaf</groupId>
             <artifactId>dojot-module-java</artifactId>
-            <version>implementing-lib-SNAPSHOT</version>
+            <version>0.0.11</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.californium</groupId>

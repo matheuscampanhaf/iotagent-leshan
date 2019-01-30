@@ -6,7 +6,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.LinkedList;
 
-import com.mycompany.app.auth.Auth;
+import com.cpqd.app.auth.Auth;
 import org.apache.log4j.Logger;
 import org.cpqd.iotagent.Device;
 import org.cpqd.iotagent.DeviceAttribute;
@@ -33,9 +33,9 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.cpqd.iotagent.FileServerPskStore;
+import com.cpqd.app.messenger.Messenger;
 
-
-import com.mycompany.app.config.Config;
+import com.cpqd.app.config.Config;
 import br.com.dojot.IoTAgent.IoTAgent;
 import br.com.dojot.utils.Services;
 
@@ -73,40 +73,8 @@ public class LwM2MAgent implements Runnable {
      * build a updated vision about the devices
      */
     public boolean bootstrap() {
-    	logger.debug("Bootstrap iotagent leshan: started");
-    	Services iotAgent = Services.getInstance();
-    	
-    	List<String> tenants = Auth.getInstance().getTenants();
-    	if (tenants == null) {
-    		logger.error("Fail to retrieve tenants");
-    		return false;
-    	}
-    	for (String tenant: tenants) {
-    		logger.debug("Requesting devices from tenant: " + tenant);
-    		List<String> devicesId = iotAgent.listDevices(tenant);
-        	if (devicesId == null) {
-        		logger.error("Fail to retrieve devices");
-        		return false;
-        	}
-    		for (String deviceId: devicesId) {
-    			logger.debug("Requesting device with device id: " + deviceId);
-    			JSONObject deviceJson = iotAgent.getDevice(deviceId, tenant);
-            	if (deviceJson == null) {
-            		logger.error("Fail to retrieve device");
-            		return false;
-            	}
-    			Device device;
-				try {
-					device = new Device(deviceJson);
-				} catch (Exception e) {
-					//just skip this device, it probably is not a LWM2M device
-					continue;
-				}
-    			this.deviceMapper.addNorthboundAssociation(device.getClientEndpoint(), deviceId, tenant);
-    		}
-    	}
-    	
-    	logger.debug("Bootstrap iotagent leshan: finished");
+
+    	this.eventHandler.generateDeviceCreateEventForActiveDevices();
     	return true;
     }
 
