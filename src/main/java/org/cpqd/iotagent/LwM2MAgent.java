@@ -103,7 +103,7 @@ public class LwM2MAgent implements Runnable {
 			String fileURI = imageDownloader.ImageURI(tenant, deviceId, "Template_lwm2m", newFwVersion);
 			logger.debug("Got the file URI: " + fileURI);
 			logger.debug("Will write URI in resource package URI");
-			requestHandler.WriteResource(registration, "/5000/0/1", fileURI);
+			requestHandler.WriteResource(registration, "/5/0/1", fileURI);
 		}
 		else {
 			logger.debug("Device already up-to-date");
