@@ -8,7 +8,7 @@
 		<MultipleInstances>Multiple</MultipleInstances>
 		<Mandatory>Optional</Mandatory>
 		<Resources>
-			<Item ID="5700">
+			<Item ID="5722">
 				<Name>Sensor Value</Name>
 				<Operations>R</Operations>
 				<MultipleInstances>Single</MultipleInstances>

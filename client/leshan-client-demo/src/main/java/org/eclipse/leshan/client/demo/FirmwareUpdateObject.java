@@ -7,7 +7,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.TimeZone;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -24,61 +23,35 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class FirmwareUpdateObject extends BaseInstanceEnabler {
+    
+    static final int STATE_UPDATING = 3;
+    static final int STATE_IDLE = 0;
+    static final int STATE_DOWNLOADING = 1;
+    static final int STATE_DOWNLOADED = 2;
+    static final int RESOURCE_STATE = 3;
+    
+    static final int RESOURCE_UPDATE_RESULT = 5;
+    static final int UR_INITIAL_VALUE = 0;
+    static final int UR_SUCCESS = 1;
+    static final int UR_FAIL_DOWNLOAD = 4;
 
     private static final Logger LOG = LoggerFactory.getLogger(FirmwareUpdateObject.class);
 
-    private static final Random RANDOM = new Random();
     private static final List<Integer> supportedResources = Arrays.asList(1, 2, 3, 5);
-
-    // public FirmwareUpdateObject() {
-    //     // notify new date each 5 second
-    //     Timer timer = new Timer("Firmware time");
-    //     timer.schedule(new TimerTask() {
-    //         @Override
-    //         public void run() {
-    //             fireResourcesChange(13);
-    //         }
-    //     }, 5000, 5000);
-    // }
+    public FirmwareUpdateObject() {
+        URI = "";
+    }
 
     @Override
     public ReadResponse read(ServerIdentity identity, int resourceid) {
         LOG.info("Read on Device Resource " + resourceid);
         switch (resourceid) {
-        case 0:
-            return ReadResponse.success(resourceid, getManufacturer());
         case 1:
-            return ReadResponse.success(resourceid, getModelNumber());
-        case 2:
-            return ReadResponse.success(resourceid, getSerialNumber());
+            return ReadResponse.success(resourceid, getURI());
         case 3:
-            return ReadResponse.success(resourceid, getFirmwareVersion());
-        case 9:
-            return ReadResponse.success(resourceid, getBatteryLevel());
-        case 10:
-            return ReadResponse.success(resourceid, getMemoryFree());
-        case 11:
-            Map<Integer, Long> errorCodes = new HashMap<>();
-            errorCodes.put(0, getErrorCode());
-            return ReadResponse.success(resourceid, errorCodes, Type.INTEGER);
-        case 13:
-            return ReadResponse.success(resourceid, getCurrentTime());
-        case 14:
-            return ReadResponse.success(resourceid, getUtcOffset());
-        case 15:
-            return ReadResponse.success(resourceid, getTimezone());
-        case 16:
-            return ReadResponse.success(resourceid, getSupportedBinding());
-        case 17:
-            return ReadResponse.success(resourceid, getDeviceType());
-        case 18:
-            return ReadResponse.success(resourceid, getHardwareVersion());
-        case 19:
-            return ReadResponse.success(resourceid, getSoftwareVersion());
-        case 20:
-            return ReadResponse.success(resourceid, getBatteryStatus());
-        case 21:
-            return ReadResponse.success(resourceid, getMemoryTotal());
+            return ReadResponse.success(resourceid, getState());
+        case 5:
+            return ReadResponse.success(resourceid, getUpdateResult());
         default:
             return super.read(identity, resourceid);
         }
@@ -86,105 +59,110 @@ public class FirmwareUpdateObject extends BaseInstanceEnabler {
 
     @Override
     public ExecuteResponse execute(ServerIdentity identity, int resourceid, String params) {
-        LOG.info("Execute on firmware update resource " + resourceid);
+        LOG.info("Execute on Firmware Update resource " + resourceid);
         if (params != null && params.length() != 0)
             System.out.println("\t params " + params);
+        switch(resourceid){
+            case 2:
+                setState(STATE_UPDATING);
+                fireResourcesChange(RESOURCE_STATE);
+                Runnable r1 = new Runnable() {
+
+                    public void run (){
+                        try {
+                            Thread.sleep(5000);
+                            setState(STATE_IDLE);
+                            fireResourcesChange(RESOURCE_STATE);
+                            setUpdateResult(UR_SUCCESS);
+                            fireResourcesChange(RESOURCE_UPDATE_RESULT);
+                        } catch (Exception error) {
+                            System.out.println(error);
+                        }
+    
+                    }
+                };
+                Thread t1 = new Thread(r1);
+                t1.start();
+        }
         return ExecuteResponse.success();
     }
 
     @Override
     public WriteResponse write(ServerIdentity identity, int resourceid, LwM2mResource value) {
-        LOG.info("Write on FWUpdate Resource " + resourceid + " value " + value);
+        LOG.info("Write on Device Resource " + resourceid + " value " + value);
         switch (resourceid) {
-        case 13:
-            return WriteResponse.notFound();
         case 1:
-            setUtcOffset((String) value.getValue());
+            resetUpdateResult();
+            setURI((String) value.getValue());
             fireResourcesChange(resourceid);
-            return WriteResponse.success();
-        case 15:
-            setTimezone((String) value.getValue());
-            fireResourcesChange(resourceid);
+            setState(STATE_DOWNLOADING);
+            fireResourcesChange(RESOURCE_STATE);
+            Runnable r1 = new Runnable() {
+
+                public void run (){
+                    try {
+                        Thread.sleep(5000);
+                        if(checkURI(getURI())){
+                            setState(STATE_DOWNLOADED);
+                            fireResourcesChange(RESOURCE_STATE);
+                        } else {
+                            setState(STATE_IDLE);
+                            fireResourcesChange(RESOURCE_STATE);
+                            setUpdateResult(UR_FAIL_DOWNLOAD);
+                            fireResourcesChange(RESOURCE_UPDATE_RESULT);
+                        }
+                    } catch (Exception error) {
+                        System.out.println(error);
+                    }
+
+                }
+            };
+            Thread t1 = new Thread(r1);
+            t1.start();
             return WriteResponse.success();
         default:
             return super.write(identity, resourceid, value);
         }
     }
 
-    private String getManufacturer() {
-        return "Leshan Demo Device";
+    private void resetUpdateResult(){
+        setUpdateResult(UR_INITIAL_VALUE);
+        fireResourcesChange(RESOURCE_UPDATE_RESULT);
     }
 
-    private String getModelNumber() {
-        return "Model 500";
+    private Boolean checkURI(String URI) {
+        return URI.endsWith(".hex");
     }
 
-    private String getSerialNumber() {
-        return "LT-500-000-0001";
+
+    private int updateResult = 0;
+
+    private int getUpdateResult(){
+        return updateResult;
     }
 
-    private String getFirmwareVersion() {
-        return "1.0.0";
+    private void setUpdateResult(int r){
+        updateResult = r;
     }
 
-    private long getErrorCode() {
-        return 0;
+    private String URI;
+    
+    private String getURI(){
+        return URI;
     }
 
-    private int getBatteryLevel() {
-        return RANDOM.nextInt(101);
+    private void setURI(String u) {
+        URI = u;
     }
 
-    private long getMemoryFree() {
-        return Runtime.getRuntime().freeMemory() / 1024;
+    private int state = 0;
+
+    private int getState(){
+        return state;
     }
 
-    private Date getCurrentTime() {
-        return new Date();
-    }
-
-    private String utcOffset = new SimpleDateFormat("X").format(Calendar.getInstance().getTime());
-
-    private String getUtcOffset() {
-        return utcOffset;
-    }
-
-    private void setUtcOffset(String t) {
-        utcOffset = t;
-    }
-
-    private String timeZone = TimeZone.getDefault().getID();
-
-    private String getTimezone() {
-        return timeZone;
-    }
-
-    private void setTimezone(String t) {
-        timeZone = t;
-    }
-
-    private String getSupportedBinding() {
-        return "U";
-    }
-
-    private String getDeviceType() {
-        return "Demo";
-    }
-
-    private String getHardwareVersion() {
-        return "1.0.1";
-    }
-
-    private String getSoftwareVersion() {
-        return "1.0.2";
-    }
-
-    private int getBatteryStatus() {
-        return RANDOM.nextInt(7);
-    }
-
-    private long getMemoryTotal() {
-        return Runtime.getRuntime().totalMemory() / 1024;
+    private void setState(int s){
+        state = s;
     }
 
     @Override

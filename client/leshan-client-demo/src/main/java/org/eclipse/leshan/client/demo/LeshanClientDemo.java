@@ -58,11 +58,11 @@ public class LeshanClientDemo {
 
     private static final Logger LOG = LoggerFactory.getLogger(LeshanClientDemo.class);
 
-    private final static String[] modelPaths = new String[] { "3303.xml", "5.xml" };
+    private final static String[] modelPaths = new String[] { "3303.xml" };
 
     private static final int OBJECT_ID_TEMPERATURE_SENSOR = 3303;
     private static final int OBJECT_ID_FIRMWARE_UPDATE = 5;
-    
+
     private final static String DEFAULT_ENDPOINT = "LeshanClientDemo";
     private final static String USAGE = "java -jar leshan-client-demo.jar [OPTION]\n\n";
 
@@ -364,7 +364,7 @@ public class LeshanClientDemo {
         initializer.setInstancesForObject(LOCATION, locationInstance);
         initializer.setInstancesForObject(OBJECT_ID_TEMPERATURE_SENSOR, new RandomTemperatureSensor());
         initializer.setInstancesForObject(OBJECT_ID_FIRMWARE_UPDATE, new FirmwareUpdateObject());
-
+        
         List<LwM2mObjectEnabler> enablers = initializer.createAll();
 
         // Create CoAP Config
