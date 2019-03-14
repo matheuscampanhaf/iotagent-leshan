@@ -46,7 +46,7 @@ public class ImageDownloader {
         }
     }
 
-    public String ImageURI(String service, String deviceId, String imageLabel, String version) {
+    public String ImageURI(String service, String deviceId, String imageId) {
         // TODO(jsiloto): Sanity check and return empty
         String protocol = "coap";
         String port = "5693";
@@ -66,44 +66,13 @@ public class ImageDownloader {
             protocol = "coaps";
             port = "5694";
         } 
-
-        String imageID = FetchImage(service, imageLabel, version);
-        String fileServerURI = protocol + "://" + this.fileServerAddress + ":" + port + "/data/";
-        String fileURI = fileServerURI + imageID + ".hex";
-        return fileURI;
-    }
-
-    public String FetchImage(String service, String imageLabel, String version) {
+        
         String token = Auth.getInstance().getToken(service);
-        String imageID = GetImageId(imageLabel, version, token);
-        DownloadImage(imageID, token);
-        return imageID;
-    }
+        DownloadImage(imageId, token);
 
-    private String GetImageId(String imageLabel, String version, String token) {
-        try {
-
-            HttpResponse<JsonNode> response = Unirest.get(imageURI)
-                    .header("Authorization", "Bearer " + token).asJson();
-
-            JsonNode imageList = response.getBody();
-            JSONArray images = imageList.getArray();
-            for (int i = 0; i < images.length(); i++) {
-                JSONObject image = images.getJSONObject(i);
-                String d = image.getString("label");
-                String f = image.getString("fw_version");
-                Boolean haveBinary = image.getBoolean("confirmed");
-                if (d.equals(imageLabel) && f.equals(version) && haveBinary) {
-                    return image.getString("id");
-                }
-            }
-
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            mLogger.error(e);
-        }
-        throw new NoSuchElementException("Image not on Database");
+        String fileServerURI = protocol + "://" + this.fileServerAddress + ":" + port + "/data/";
+        String fileURI = fileServerURI + imageId + ".hex";
+        return fileURI;
     }
 
     private void DownloadImage(String imageId, String token) {
@@ -118,6 +87,7 @@ public class ImageDownloader {
                 Files.createFile(path);
             }
             Files.copy(in, path, StandardCopyOption.REPLACE_EXISTING);
+            mLogger.info("Image " + imageId + " successfully downloaded.");
         } catch (Exception e) {
             e.printStackTrace();
             mLogger.error(e);

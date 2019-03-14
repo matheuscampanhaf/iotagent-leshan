@@ -90,24 +90,19 @@ public class LwM2MAgent implements Runnable {
 	 * @param registration, newFwVersion, tenant 
 	 * @return
 	 */
-	private Integer sendsURItoDevice(Registration registration, String newFwVersion, String tenant, String deviceId){
+	private Integer sendsURItoDevice(Registration registration, String tenant, String deviceId, String imageId){
 		logger.debug("Will try to send URI to device");
 
 		//Verification if the fw version is really changing.
 		String currentFwVersion = requestHandler.ReadResource(registration, "/3/0/3");
-		logger.debug("Current FW version: " + currentFwVersion);
-		logger.debug("Desirable FW version: " + newFwVersion);
 		//Gets URL to give it to device if the version is actual changing
-		if(!currentFwVersion.equals(newFwVersion)){
-			logger.debug("Versions have actual changed");
-			String fileURI = imageDownloader.ImageURI(tenant, deviceId, "Template_lwm2m", newFwVersion);
+			logger.debug("Triggered firmware update");
+			String fileURI = imageDownloader.ImageURI(tenant, deviceId, imageId);
 			logger.debug("Got the file URI: " + fileURI);
 			logger.debug("Will write URI in resource package URI");
 			requestHandler.WriteResource(registration, "/5/0/1", fileURI);
-		}
-		else {
-			logger.debug("Device already up-to-date");
-		}
+		
+		
 		return 0;
 	}
     /**
@@ -241,9 +236,12 @@ public class LwM2MAgent implements Runnable {
         JSONArray targetAttrs = attrs.names();
 
         for (int i = 0; i < targetAttrs.length(); ++i) {
-        	String targetAttr = targetAttrs.getString(i);
-			if(targetAttr.equals(fwUpdateLabel)){
-				sendsURItoDevice(controlStruture.registration, attrs.getString(targetAttr), tenant, deviceId);
+			String targetAttr = targetAttrs.getString(i);
+			DeviceAttribute attr = device.getAttributeByLabel(targetAttr);
+			if(attr.getLwm2mPath().equals("/5/0/1")){
+				String imageId = attrs.getString(targetAttr);
+				logger.info("Image id that came on actuation: "+ imageId);
+				sendsURItoDevice(controlStruture.registration, tenant, deviceId, attrs.getString(targetAttr));
 			}
         	else {
 				devAttr = device.getAttributeByLabel(targetAttr);

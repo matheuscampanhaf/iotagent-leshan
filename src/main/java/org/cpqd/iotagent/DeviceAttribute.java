@@ -6,7 +6,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.eclipse.leshan.core.model.ResourceModel;
 import org.json.JSONArray;
 import org.json.JSONObject;
-
+import org.apache.log4j.Logger;
 import java.util.Arrays;
 
 /*
@@ -21,12 +21,13 @@ public class DeviceAttribute {
     private String path;
     private ResourceModel.Operations operations;
     private Boolean isLwM2MAttr;
+    Logger logger = Logger.getLogger(Device.class);
 
     public DeviceAttribute(JSONObject json) {
     	this.label = json.getString("label");
     	this.isLwM2MAttr = false;
-    	this.valueType = json.getString("value_type");
-    	
+        this.valueType = json.getString("value_type");
+            	
     	this.type = json.getString("type");
         if (type.equals("static")) {
         	this.staticValue = json.opt("static_value");
@@ -38,14 +39,19 @@ public class DeviceAttribute {
         } else {
         	this.operations = ResourceModel.Operations.NONE;
         }
-    	
-    	JSONArray meta = json.optJSONArray("metadata");
+        
+        
+        JSONArray meta = json.optJSONArray("metadata");
     	if (meta == null) {
     		return;
     	}
     	for (int i = 0; i < meta.length(); ++i) {
     		JSONObject metaAttr = meta.getJSONObject(i);
-    		String metaLabel = metaAttr.getString("label");
+            String metaLabel = metaAttr.getString("label");
+            logger.info("This is the label 01: " + metaLabel);
+            if(metaLabel.startsWith("dojot:firmware_update")){
+                addPathOpMeta(metaLabel);
+            };
     		if (metaLabel.equals("path")) {
     			this.path = metaAttr.getString("static_value");
     			this.isLwM2MAttr = true;
@@ -55,6 +61,34 @@ public class DeviceAttribute {
     			}
     		}
     	}
+    }
+
+    private void addPathOpMeta(String label){
+        logger.info("This is the label: " + label);
+        switch(label){
+            case "dojot:firmware_update:state":
+                logger.info("state, adding path and setting islwm2mattr to true");
+                this.path="/5/0/3";
+                this.isLwM2MAttr = true;
+                break;
+            case "dojot:firmware_update:update_result":
+                logger.info("result, adding path and setting islwm2mattr to true");
+                this.path="/5/0/5";
+                this.isLwM2MAttr = true;
+                break;
+            case "dojot:firmware_update:update":
+                logger.info("update, adding path and setting islwm2mattr to true");
+                this.path="/5/0/2";
+                this.isLwM2MAttr = true;
+                this.operations = ResourceModel.Operations.E;
+                break;
+            case "dojot:firmware_update:desired_version":
+                logger.info("update, adding path and setting islwm2mattr to true");
+                this.path="/5/0/1";
+                this.isLwM2MAttr = true;
+            default:
+                logger.info("Didnt match any dojot:firmware_update");
+        }
     }
 
     public boolean isLwm2mAttr() {
